@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.runtime/
+data/
+backups/
+exports/
+coverage/
+*.sqlite*
+*.db*
+*.log
+.env*
+!.env.example
+.DS_Store
+*.tar.gz
+*.pem
+*.key

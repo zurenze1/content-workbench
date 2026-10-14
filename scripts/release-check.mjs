@@ -1,0 +1,4 @@
+import {execFileSync} from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+const git=process.env.WORKBENCH_GIT||'git';const names=execFileSync(git,['ls-files','-z'],{encoding:'utf8'}).split('\0').filter(Boolean);const forbidden=names.filter(n=>/(^|\/)(node_modules|dist|data|backups|exports|\.runtime|\.env)(\/|$)|\.(sqlite|db|tar\.gz|pem|key)(-|$)/.test(n));if(forbidden.length)throw new Error('禁止发布的生成物/数据文件：'+forbidden.join(','));for(const file of names){if(fs.statSync(file).size>5*1024*1024)throw new Error('源码中出现过大文件：'+file);if(/\.(mjs|ts|tsx|json|md|yml)$/.test(file)){const s=fs.readFileSync(file,'utf8');if(/(?:ghp_|github_pat_|sk-proj-)[A-Za-z0-9_-]{20,}/.test(s))throw new Error('疑似凭据：'+file);if(/\/Users\/zurenze\/Library\/Application Support\/(?:人生档案|Content Workbench)\/data\//.test(s))throw new Error('源码含用户实际数据路径：'+file);}}console.log(`发布检查通过：${names.length} 个源码文件，无数据库、原件、备份或凭据`);
