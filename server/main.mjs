@@ -14,12 +14,14 @@ import {sourceUrl} from './security.mjs';
 import {saveBlob,blobPath,byteRange,safeName} from './files.mjs';
 import {restoreInspected} from './backup.mjs';
 import {exportVersion} from './export.mjs';
+import {register,services,enums} from './routes.mjs';
 const root=path.dirname(path.dirname(fileURLToPath(import.meta.url))),cfg=config(),store=new Store(cfg.db),csrf=randomBytes(32).toString('hex');
 const app=Fastify({logger:false,forceCloseConnections:'idle',bodyLimit:2*1024*1024,requestTimeout:180000});
 await app.register(multipart,{limits:{fileSize:cfg.maxFile,files:1,fields:5,fieldSize:20000,parts:6}});
 app.addHook('onRequest',async(req,reply)=>{const host=req.headers.host||'';const expected=new Set([`127.0.0.1:${cfg.port}`,`localhost:${cfg.port}`]);if(!expected.has(host))return reply.code(403).send({error:'本地服务拒绝此主机名'});const origin=req.headers.origin;if(origin&&!new Set([...expected,'127.0.0.1:4780','localhost:4780']).has(new URL(origin).host))return reply.code(403).send({error:'拒绝跨站请求'});if(req.headers['sec-fetch-site']==='cross-site')return reply.code(403).send({error:'拒绝跨站读取'});if(req.url.startsWith('/api/')&&!['GET','HEAD'].includes(req.method)&&req.headers['x-workbench-csrf']!==csrf)return reply.code(403).send({error:'请求校验失败，请刷新工作台'});reply.header('X-Content-Type-Options','nosniff').header('Referrer-Policy','same-origin').header('Cache-Control','no-store').header('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");});
 app.setErrorHandler((error,request,reply)=>{const code=error.statusCode||400;reply.code(code>=400&&code<600?code:400).send({error:error.message==='fetch failed'?'来源连接失败；出处已保留':error.message});});
-app.get('/api/bootstrap',async()=>({version:APP_VERSION,csrf,timezone:store.get('timezone'),dataDirectory:cfg.dir,maxFileBytes:cfg.maxFile,accounts:store.db.prepare('SELECT * FROM accounts ORDER BY created_at').all(),topics:store.db.prepare('SELECT * FROM topics ORDER BY updated_at DESC').all(),counts:Object.fromEntries(['sources','topics','evidence','script_versions','blobs'].map(t=>[t,store.db.prepare(`SELECT count(*) n FROM ${t}`).get().n])),types:TYPES,states:STATES,rights:RIGHTS,natures:NATURES,stages:STAGES,services:{model:{state:'未配置',enabled:false},push:{state:'未配置',enabled:false},douyin:{state:'待授权 / 未接入',enabled:false},transcription:{state:'未接入',enabled:false},rssSchedule:{state:'P2尚未启用',enabled:false}}}));
+app.get('/api/bootstrap',async()=>({version:APP_VERSION,csrf,timezone:store.get('timezone'),publishTimezone:store.get('publishTimezone')||'Asia/Shanghai',uiTimezone:store.get('uiTimezone')||'Asia/Shanghai',enums:enums(),dataDirectory:cfg.dir,maxFileBytes:cfg.maxFile,accounts:store.db.prepare('SELECT * FROM accounts ORDER BY created_at').all(),topics:store.db.prepare('SELECT * FROM topics ORDER BY updated_at DESC').all(),counts:Object.fromEntries(['sources','topics','evidence','script_versions','blobs'].map(t=>[t,store.db.prepare(`SELECT count(*) n FROM ${t}`).get().n])),types:TYPES,states:STATES,rights:RIGHTS,natures:NATURES,stages:STAGES,services:services(store,cfg.dir)}));
+register(app,store,cfg);
 app.post('/api/accounts',async req=>store.account(req.body));
 app.post('/api/topics',async req=>store.topic(req.body));
 app.patch('/api/topics/:id',async req=>store.topic(req.body,req.params.id));
@@ -54,4 +56,4 @@ const worker=fork(path.join(root,'server','worker.mjs'),['--data',cfg.dir,'--por
 let shutting=false;async function shutdown(){if(shutting)return;shutting=true;worker.kill('SIGTERM');await app.close();const timer=setTimeout(()=>worker.kill('SIGKILL'),5000);await new Promise(r=>worker.exitCode!==null||worker.signalCode!==null?r():worker.once('exit',r));clearTimeout(timer);store.close();process.exit(0);}
 process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
 worker.on('exit',(code,signal)=>{if(!shutting){console.error('任务进程已退出，停止服务以便明确恢复。');shutdown();}});
-console.log(`内容创作工作台 ${APP_VERSION} 已启动：${cfg.origin}\n资料目录：${cfg.dir}\n模型、外部推送、抖音接口均未启用。`);
+console.log(`内容创作工作台 ${APP_VERSION} 已启动：${cfg.origin}\n资料目录：${cfg.dir}\n外部推送与抖音接口未启用；模型与定时订阅仅在设置中开启后运行。`);
