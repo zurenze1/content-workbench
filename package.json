@@ -1,6 +1,6 @@
 {
   "name": "content-workbench",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "description": "本地内容创作工作台：真实资料、原件、证据与脚本版本",
@@ -21,6 +21,7 @@
     "@fastify/multipart": "10.1.3",
     "@fastify/static": "10.1.6",
     "@mozilla/readability": "0.6.0",
+    "@tesseract.js-data/chi_sim": "1.0.0",
     "fastify": "5.12.7",
     "fflate": "0.8.3",
     "jsdom": "30.1.2",
@@ -28,6 +29,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "tar-stream": "3.2.2",
+    "tesseract.js": "7.0.0",
     "undici": "8.11.2"
   },
   "devDependencies": {
