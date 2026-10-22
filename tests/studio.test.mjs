@@ -8,6 +8,7 @@ import {importVideos,videos,allowedMedia,conversations} from '../server/studio.m
 import {createBackup,inspectBackup} from '../server/backup.mjs';
 
 test('视频迁移：真实复制、重复合并、来源保留、笔记和对话随完整备份恢复',async()=>{
+  await fs.mkdir(path.join(os.homedir(),'Documents/Codex'),{recursive:true});
   const parent=await fs.mkdtemp(path.join(os.homedir(),'Documents/Codex/workbench-import-test-')),dir=path.join(parent,'data');
   for(const n of ['blobs','staging','backups','restored'])await fs.mkdir(path.join(dir,n),{recursive:true});
   const file=path.join(parent,'isolated-video.mp4'),same=path.join(parent,'same-video.mp4');await fs.copyFile(new URL('./fixtures/video.mp4',import.meta.url),file);await fs.copyFile(file,same);
