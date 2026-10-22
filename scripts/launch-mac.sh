@@ -4,7 +4,7 @@ ROOT="$(cd -- "$(dirname -- "$0")/.." && pwd)"
 URL="http://127.0.0.1:4781/"
 LOG="$HOME/Library/Logs/祖仁泽自媒体工作台.log"
 export PATH="$HOME/Documents/Codex/tools/node/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
-up() { curl -fsS -m 2 "${URL}api/bootstrap" >/dev/null 2>&1 }
+up() { curl --noproxy '*' -fsS -m 2 "${URL}api/bootstrap" >/dev/null 2>&1 }
 alert() { osascript -e "display alert \"祖仁泽自媒体工作台\" message \"$1\"" >/dev/null 2>&1 }
 if ! up; then
   cd "$ROOT" || { alert "找不到工作台程序目录：$ROOT"; exit 1; }
@@ -16,4 +16,5 @@ if ! up; then
   for i in {1..60}; do up && break; sleep 0.5; done
   up || { alert "本地服务没有启动成功，请查看日志：$LOG"; exit 1; }
 fi
+if [ "${1:-}" = "--server-only" ]; then exit 0; fi
 if [ -d "/Applications/Google Chrome.app" ]; then open -a "Google Chrome" "$URL"; else open "$URL"; fi
