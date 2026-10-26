@@ -106,7 +106,7 @@ export class Operations{
     return {accountId,profiles,topics,opportunities:this.opportunities(),phases:PRODUCTION_PHASES,opportunityStates:OPPORTUNITY_STATES,digest: digest?{...digest,today:digest.day===day}:null};
   }
   async handoff(topicId,body){const v=this.version(topicId,body.versionId),latest=this.db.prepare('SELECT * FROM approval_rounds WHERE topic_id=? AND version_id=? ORDER BY requested_at DESC,rowid DESC LIMIT 1').get(topicId,v.id),approved=latest?.status==='已确认'?latest:null;
-    const exportData=exportVersion(this.store,v.id),refs=Object.values(v.payload.references),sourceVersions=[...new Map(refs.map(e=>[e.version_id,this.store.row('source_versions',e.version_id)])).values()];
+    const exportData=exportVersion(this.store,v.id),refs=Object.values(v.payload.references),sourceVersions=[...new Map([...refs.map(e=>e.version_id),...Object.keys(v.payload.materials||{})].map(id=>[id,this.store.row('source_versions',id)])).values()];
     const profile=this.profiles().find(a=>a.id===v.payload.topic.account_id),status=approved?'已确认版':'待审版';
     const manifest={format:'content-workbench-handoff',version:1,topicId,accountId:v.payload.topic.account_id,accountName:profile?.name||'待归属',scriptVersionId:v.id,scriptVersionNumber:v.number,status,approval:approved,profile:profile?.profile||{},sources:sourceVersions.map(s=>({id:s.source_id,versionId:s.id,number:s.number,filename:s.filename,blobHash:s.blob_hash,metadata:parse(s.metadata)})),originals:[],omissions:[]};
     const checksum=hash(JSON.stringify(manifest)),existing=this.db.prepare('SELECT * FROM handoffs WHERE checksum=?').get(checksum);if(existing)return {...existing,payload:parse(existing.payload),existing:true};

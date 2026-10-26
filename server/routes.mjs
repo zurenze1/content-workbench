@@ -8,9 +8,11 @@ import {OCR_ENGINE} from './ocr.mjs';
 import {Variants,VARIANT_STATES} from './variants.mjs';
 import {transcriptionStatus} from './transcription.mjs';
 import {dailyStatus} from './discovery.mjs';
-export function services(store,dir){const m=modelConfig(store,dir),feeds=store.db.prepare('SELECT count(*) n,sum(enabled) e FROM feeds').get(),b=new Hot(store).brief();return {model:{state:m.state,enabled:m.state==='已启用',provider:m.provider,model:m.model},push:{state:'外部渠道未配置（仅站内简报）',enabled:false},douyin:{state:'待授权 / 未接入',enabled:false},transcription:transcriptionStatus(),daily:dailyStatus(store),rssSchedule:{state:feeds.e?`${feeds.e} 个订阅定时运行（需本机服务开启）`:feeds.n?'订阅已添加，定时未开启':'未添加订阅源',enabled:!!feeds.e},brief:{state:b.enabled?`每天 ${b.time} 生成站内简报`:'每日简报未开启',enabled:b.enabled}};}
+import {registerDouyin,douyinStatus} from './douyin.mjs';
+export function services(store,dir){const m=modelConfig(store,dir),feeds=store.db.prepare('SELECT count(*) n,sum(enabled) e FROM feeds').get(),b=new Hot(store).brief();return {model:{state:m.state,enabled:m.state==='已启用',provider:m.provider,model:m.model},push:{state:'外部渠道未配置（仅站内简报）',enabled:false},douyin:douyinStatus(),transcription:transcriptionStatus(),daily:dailyStatus(store),rssSchedule:{state:feeds.e?`${feeds.e} 个订阅定时运行（需本机服务开启）`:feeds.n?'订阅已添加，定时未开启':'未添加订阅源',enabled:!!feeds.e},brief:{state:b.enabled?`每天 ${b.time} 生成站内简报`:'每日简报未开启',enabled:b.enabled}};}
 export function enums(){return {lanes:LANES,screens:SCREENS,lifecycles:LIFECYCLES,judgements:JUDGEMENTS,hotRights:HOT_RIGHTS,dimensions:DIMENSIONS,materials:MATERIALS,planStates:PLAN_STATES,scales:SCALES,expStates:EXP_STATES,paid:PAID,modelTasks:MODEL_TASKS,variantStates:VARIANT_STATES};}
 export function register(app,store,cfg){const hot=new Hot(store),create=new Create(store),ana=new Analytics(store),db=store.db;const big={bodyLimit:25*1024*1024};
+  registerDouyin(app,store,cfg);
   app.put('/api/settings',async req=>{const b=req.body||{};if(b.publishTimezone)store.set('publishTimezone',validZone(text(b.publishTimezone,60)));if(b.uiTimezone)store.set('uiTimezone',validZone(text(b.uiTimezone,60)));return {publishTimezone:store.get('publishTimezone')||'Asia/Shanghai',uiTimezone:store.get('uiTimezone')||'Asia/Shanghai'};});
   // P2 热点与简报
   app.get('/api/hot/feeds',async()=>hot.feeds());
