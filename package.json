@@ -1,6 +1,6 @@
 {
   "name": "content-workbench",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "private": true,
   "type": "module",
   "description": "本地内容创作工作台：真实资料、原件、证据与脚本版本",

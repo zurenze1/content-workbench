@@ -1,7 +1,7 @@
 import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
-export const APP_VERSION='0.8.1';
+export const APP_VERSION='0.9.0';
 export const DEFAULT_DATA=path.join(os.homedir(),process.platform==='darwin'?'Library/Application Support':' .local/share'.trim(),'Content Workbench','data');
 export function config(argv=process.argv.slice(2)) {
   const option=(key,fallback)=>{const i=argv.indexOf(key);return i<0?fallback:argv[i+1];};

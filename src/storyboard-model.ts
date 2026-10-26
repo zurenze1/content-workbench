@@ -1,5 +1,9 @@
-export type MaterialRef={sourceId:string;versionId:string};
-export type StorySegment={id:string;heading:string;narration:string;shot:string;subtitle:string;evidenceIds:string[];startSec?:number|null;endSec?:number|null;materials?:MaterialRef[]};
+export type MaterialRole='主选'|'备选'|'参考';
+export type MaterialRef={sourceId:string;versionId:string;role?:MaterialRole};
+export type StorySegment={id:string;heading:string;narration:string;shot:string;subtitle:string;evidenceIds:string[];startSec?:number|null;endSec?:number|null;materials?:MaterialRef[];editNote?:string};
+export function assignMaterialRole(materials:MaterialRef[],versionId:string,role:MaterialRole):MaterialRef[]{
+  return materials.map(r=>r.versionId===versionId?{...r,role}:role==='主选'&&r.role==='主选'?{...r,role:'备选'}:r);
+}
 
 export function formatTime(value:number|null|undefined){
   if(value==null)return '';
