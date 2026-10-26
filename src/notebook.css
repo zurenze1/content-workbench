@@ -1,5 +1,5 @@
 html[data-theme]{--ui-font:WorkbenchYouth,'PingFang SC',-apple-system,BlinkMacSystemFont,sans-serif;--ink:#9abbff;--green:#8fb7ff;--line:#26324a;--muted:#9aa9c3;--paper:#101a2d;--panel:#101a2d;--accent:#85aeff;--canvas:#070d19;--text:#e4ebfa;--field:#0b1426;--soft:#162139;--shadow:0 12px 36px #0002;color-scheme:dark;font-family:var(--ui-font);background:var(--canvas);color:var(--text);font-size:14px}
-html[data-theme=paper]{--ink:#335a9d;--green:#3c66aa;--line:#dbe2ee;--muted:#6d7f9c;--paper:#fff;--panel:#fff;--accent:#456fb6;--canvas:#edf2fa;--text:#273a58;--field:#f5f8fc;--soft:#eef3fb;--shadow:0 8px 28px #435f7d0a;color-scheme:light}
+html[data-theme=paper]{--ink:#2a629d;--green:#2c6a95;--line:#c7dded;--muted:#526e88;--paper:#f8fcff;--panel:#f8fcff;--accent:#2865ae;--canvas:#e5f2fc;--text:#203d58;--field:#fff;--soft:#e8f3fd;--shadow:0 8px 28px #35658b0b;color-scheme:light}
 html[data-theme] body,html[data-theme] .shell{background:var(--canvas);color:var(--text)}html[data-theme] body:before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 95% 0%,#2452bb32,transparent 48%),radial-gradient(ellipse at 100% 53%,#aa602617,transparent 34%);z-index:0}html[data-theme=paper] body:before{opacity:.13}html[data-theme] .shell{position:relative;min-height:100vh;background:transparent}
 html[data-theme] h1,html[data-theme] h2,html[data-theme] h3,html[data-theme] h4{font-family:var(--ui-font);color:var(--text);font-weight:500;letter-spacing:.005em}html[data-theme] h1{font-size:29px;line-height:1.45}html[data-theme] h2{font-size:22px}html[data-theme] h3{font-size:15px}
 html[data-theme] button,html[data-theme] input,html[data-theme] select,html[data-theme] textarea{font-family:var(--ui-font)}html[data-theme] button,html[data-theme] .button{background:var(--soft);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:9px 14px;min-height:38px;box-shadow:none;transition:background .16s,border-color .16s}html[data-theme] button:hover,html[data-theme] .button:hover{background:color-mix(in srgb,var(--accent) 14%,var(--paper));border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}html[data-theme] button.primary,html[data-theme] .button.primary{background:#426ad2;color:#f8fbff;border-color:#5c81e4;box-shadow:0 4px 18px #3d6fe328;font-weight:500}html[data-theme] button.primary:hover,html[data-theme] .button.primary:hover{background:#547ce3;border-color:#7ca0ff}html[data-theme] button.plain,html[data-theme] .text-link{background:transparent;border:0;color:var(--accent);box-shadow:none}html[data-theme] button.active,html[data-theme] .tabs button.active,html[data-theme] .hub-tabs button.active{background:color-mix(in srgb,#416fce 20%,var(--paper));border-color:#466bb2;color:var(--accent)}html[data-theme] a{color:var(--accent)}
@@ -34,3 +34,40 @@ html[data-theme] .atelier-portrait,html[data-theme] .portrait-filaments,html[dat
 @media(max-width:800px){html[data-theme] .sidebar{position:static;width:100%;padding:15px 18px 8px}html[data-theme] .workspace{width:100%;margin-left:0}html[data-theme] .sidebar nav{margin-top:14px;gap:12px}html[data-theme] .area-button,html[data-theme] .sidebar .nav{min-height:33px;padding:8px 11px;font-size:11px}html[data-theme] .topbar{padding:12px 18px;min-height:57px;flex-wrap:wrap}html[data-theme] .workspace main{padding:19px 18px 36px}.console-heading{gap:12px;margin-bottom:19px}.console-heading h1{font-size:25px!important}.console-heading>span{font-size:9px;max-width:110px;line-height:1.8}.console-grid{grid-template-columns:1fr;gap:14px}.console-card{padding:21px;border-radius:12px}.console-welcome{min-height:220px}.console-date{display:none}.console-welcome h2{font-size:28px}.console-welcome>p:not(.console-kicker){max-width:95%}.console-progress-body{gap:25px}.console-shortcuts>div:last-child{gap:9px}.console-shortcuts button{min-height:65px!important}.console-task-tabs{gap:4px}.console-task{gap:10px!important}.console-task b{font-size:12px}.console-task>.badge{font-size:9px}.console-library-counts{gap:12px}.console-library-counts b{font-size:26px}.console-heading .eyebrow{font-size:8px}html[data-theme] .ip-context select{min-width:0;max-width:100%;flex:1}html[data-theme] .ip-context{padding-bottom:15px;margin-bottom:20px}html[data-theme] .paper{padding:20px}html[data-theme] .page-heading h1{font-size:25px}html[data-theme] .project-tabs button{padding:9px 7px;font-size:11px}.console-card-title>span{font-size:8px}.console-progress-numbers{gap:22px}}
 @media(max-width:360px){.console-progress-body{gap:15px}.console-ring{width:100px;height:100px}.console-progress-numbers{gap:18px 12px}.console-progress-numbers span{font-size:9px}.console-task-tabs button{padding:5px 7px!important;font-size:9px}}
 @media(max-width:800px){html[data-theme] .area-switcher{display:flex;overflow-x:auto;gap:6px}html[data-theme] .area-switcher .area-button{width:auto;flex:0 0 auto;min-width:max-content;white-space:nowrap}html[data-theme] .sidebar .area-subnav .nav{width:auto;flex:0 0 auto;white-space:nowrap}}
+
+/* Light blue is the default reading theme. Keep surfaces and secondary text legible. */
+html[data-theme=paper] body:before{background:radial-gradient(ellipse at 95% 0%,#c5e4ff80,transparent 60%);opacity:.5}
+html[data-theme=paper] .sidebar{background:#eff7fe}
+html[data-theme=paper] .brand-icon{color:#377bb7}
+html[data-theme=paper] .brand small,html[data-theme=paper] .sidebar .space-label,html[data-theme=paper] .area-button i,html[data-theme=paper] .area-subnav>p,html[data-theme=paper] .sidebar-bottom,html[data-theme=paper] .sidebar-bottom small{color:var(--muted)}
+html[data-theme=paper] .area-button.active,html[data-theme=paper] .sidebar .nav.active{background:#d5eafa;color:#244e76;border-color:#b7d7f0;box-shadow:inset 2px 0 #4f92cc}
+html[data-theme=paper] .area-button.active i{color:#326fa8}
+html[data-theme=paper] .console-welcome{background:radial-gradient(ellipse at 100% 100%,#cce6fc70,transparent 75%),var(--paper)}
+html[data-theme=paper] .console-kicker,html[data-theme=paper] .console-shortcuts span,html[data-theme=paper] .console-library-counts span,html[data-theme=paper] .console-library>p,html[data-theme=paper] .console-card-title>span,html[data-theme=paper] .console-calendar-date small,html[data-theme=paper] .console-ring small,html[data-theme=paper] .console-task small,html[data-theme=paper] .console-brief-status>span,html[data-theme=paper] .console-brief-status small,html[data-theme=paper] .console-discover-link small,html[data-theme=paper] .console-system-row>span{color:var(--muted)}
+html[data-theme=paper] .console-phase-legend b{color:var(--text)}
+html[data-theme=paper] .console-pipeline,html[data-theme=paper] .console-system-row{border-color:var(--line)}
+html[data-theme=paper] .console-pipeline button:hover span{color:var(--accent)}
+html[data-theme=paper] .console-shortcuts i{background:#e0eefb;color:#3c73aa}
+html[data-theme=paper] .console-shortcuts button:hover i{background:#cfe5f9;color:#265e98}
+html[data-theme=paper] .console-task-tabs button{color:var(--muted)!important}
+html[data-theme=paper] .console-task-tabs button.active{background:#dcecfb!important;color:#2e6094!important}
+html[data-theme=paper] .console-task{border-color:var(--line)!important}
+html[data-theme=paper] .console-task:hover{background:#e5f1fc!important}
+html[data-theme=paper] .console-brief-status{background:#eaf4fd;border-color:var(--line)}
+html[data-theme=paper] .console-discover-link{border-color:var(--line)!important}
+html[data-theme=paper] .console-legacy,html[data-theme=paper] .console-feature-link{color:var(--accent)!important}
+html[data-theme=paper] .sb-row,html[data-theme=paper] .sb-row>div+div{border-color:var(--line)}
+html[data-theme=paper] .sb-row-number,html[data-theme=paper] .sb-time-input>span,html[data-theme=paper] .sb-heading p,html[data-theme=paper] .sb-help,html[data-theme=paper] .sb-material span,html[data-theme=paper] .sb-material small{color:var(--muted)}
+html[data-theme=paper] .sb-columns,html[data-theme=paper] .sb-time{background:#e8f3fd;color:#426587}
+html[data-theme=paper] .sb-copy .sb-section{color:var(--muted)!important}
+html[data-theme=paper] .sb-drop{background:#edf7ff;color:#496d8e;border-color:#abcde8}
+html[data-theme=paper] .sb-drop:hover,html[data-theme=paper] .sb-drop:focus{background:#deeffe;border-color:#72a6d1}
+html[data-theme=paper] .sb-file-mark{background:#e6f2fd;color:#4b73a0}
+html[data-theme=paper] .sb-material video,html[data-theme=paper] .sb-material img{background:#e6f2fc}
+html[data-theme=paper] .badge.bad,html[data-theme=paper] .notice.error{background:#fff0e9;color:#925238;border-color:#eac5b3}
+html[data-theme=paper] .error{color:#a24b38}
+html[data-theme=paper] .save-state{color:#3c726b!important}
+html[data-theme=paper] .cal-item.plan{background:#e3effc;color:#365d87;border-color:#b5cce5}
+html[data-theme=paper] .cal-item.pub{background:#e5f2ef;color:#356c61;border-color:#b7d8cf}
+html[data-theme=paper] dialog{border-color:var(--line);box-shadow:0 20px 100px #2e536838}
+html[data-theme=paper] dialog::backdrop{background:#51708c55}
