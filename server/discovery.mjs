@@ -3,6 +3,7 @@ import {sourceUrl,fetchPublic} from './security.mjs';
 import {saveBuffer} from './files.mjs';
 import {shanghaiDay,Hot} from './hot.mjs';
 import {normalizeEvent,saveEvent} from './public-events.mjs';
+import {dateWindow,decorateDigest,newsChannel} from './discovery-media.mjs';
 
 const date=v=>{const d=new Date(v);if(!v||!Number.isFinite(d.getTime())||d.getTime()>Date.now()+300000)throw new Error('请提供实际采集时间，不能填写未来时间');return d.toISOString();};
 export function creators(store){
@@ -22,8 +23,17 @@ export function normalizeComment(c){
   return {accountId:c.accountId||null,videoUrl,videoTitle:text(c.videoTitle,300)||'标题待补',commentUrl:c.commentUrl?sourceUrl(c.commentUrl):videoUrl,author,text:body,likes:value,likesLabel,observedAt,origin:text(c.origin,300,true),scope:text(c.scope,1000,true),commentKey:hash(videoUrl+'|'+(text(c.commentId,200)||author+'|'+body))};
 }
 export function comments(store,q={}){
-  const rows=store.db.prepare('SELECT c.*,a.name creator FROM comment_observations c LEFT JOIN accounts a ON a.id=c.account_id WHERE c.rowid=(SELECT c2.rowid FROM comment_observations c2 WHERE c2.comment_key=c.comment_key ORDER BY observed_at DESC,rowid DESC LIMIT 1) ORDER BY likes IS NULL,likes DESC,observed_at DESC LIMIT 2000').all();
-  return rows.filter(c=>(!q.accountId||c.account_id===q.accountId)&&(!q.q||[c.text,c.author,c.video_title,c.creator].join(' ').toLowerCase().includes(String(q.q).toLowerCase()))&&(!q.videoUrl||c.video_url===q.videoUrl));
+  const w=dateWindow(q),clauses=[],params=[];
+  if(w.from){clauses.push('observed_at>=?');params.push(w.from);}if(w.to){clauses.push('observed_at<?');params.push(w.to);}
+  const conditions=clauses.length?' AND '+clauses.join(' AND '):'';
+  const rows=store.db.prepare(`SELECT c.*,a.name creator FROM comment_observations c LEFT JOIN accounts a ON a.id=c.account_id WHERE c.rowid=(SELECT c2.rowid FROM comment_observations c2 WHERE c2.comment_key=c.comment_key${conditions.replaceAll('observed_at','c2.observed_at')} ORDER BY observed_at DESC,rowid DESC LIMIT 1)${conditions.replaceAll('observed_at','c.observed_at')} ORDER BY c.observed_at DESC,c.rowid DESC`).all(...params,...params);
+  const result=rows.filter(c=>(!q.accountId||c.account_id===q.accountId)&&(!q.q||[c.text,c.author,c.video_title,c.creator].join(' ').toLowerCase().includes(String(q.q).toLowerCase()))&&(!q.videoUrl||c.video_url===q.videoUrl));
+  if(q.sort==='likes')result.sort((a,b)=>shanghaiDay(new Date(b.observed_at)).localeCompare(shanghaiDay(new Date(a.observed_at)))||(b.likes??-1)-(a.likes??-1)||b.observed_at.localeCompare(a.observed_at));
+  return result.slice(0,2000);
+}
+export function queueDigestImages(store,digest){
+  if(!digest)return [];
+  return digest.payload.news.map(n=>{const url=n.sources[0].url;const existing=store.db.prepare("SELECT id FROM jobs WHERE kind='news-image' AND json_extract(input,'$.url')=? AND status IN ('排队','处理中','等待重试')").get(url);return existing||store.job('news-image',{url,imageUrl:n.imageUrl||''});});
 }
 export async function importComments(store,dir,body){
   if(!Array.isArray(body.comments)||body.comments.length>1000)throw new Error('每批最多1000条实际评论');
@@ -40,7 +50,7 @@ export function dailyStatus(store){
 }
 function newsItem(n){
   if(!Array.isArray(n.sources)||!n.sources.length||n.sources.length>10)throw new Error('每条热点必须有真实来源');
-  return {title:text(n.title,300,true),category:text(n.category,80)||'公共热点',facts:text(n.facts,10000,true),analysis:text(n.analysis,5000),publishedAt:text(n.publishedAt,100),readScope:text(n.readScope,2000,true),sources:n.sources.map(s=>({name:text(s.name,200,true),url:sourceUrl(s.url)}))};
+  return {channel:newsChannel(n),person:text(n.person,100),imageUrl:n.imageUrl?sourceUrl(n.imageUrl):'',title:text(n.title,300,true),category:text(n.category,80)||'公共热点',facts:text(n.facts,10000,true),analysis:text(n.analysis,5000),publishedAt:text(n.publishedAt,100),readScope:text(n.readScope,2000,true),sources:n.sources.map(s=>({name:text(s.name,200,true),url:sourceUrl(s.url)}))};
 }
 export async function ingestDaily(store,dir,body){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(body.day)||body.day>shanghaiDay()||shanghaiDay(new Date(body.day+'T12:00:00+08:00'))!==body.day)throw new Error('日报日期无效');
@@ -54,7 +64,7 @@ export async function ingestDaily(store,dir,body){
   const raw=await saveBuffer(store,dir,Buffer.from(JSON.stringify(body,null,2)),'Codex每日热点与评论.json');
   for(const e of eventItems)await saveEvent(store,dir,e,{rawHash:raw.hash,id:e.eventId||null});
   const commentResult=await importComments(store,dir,{comments:body.comments||[]});
-  return store.transaction(()=>{
+  const delivery=store.transaction(()=>{
     const hot=new Hot(store),items=news.map(n=>{const key='codex-news:'+hash(n.sources[0].url+'|'+n.title),existing=store.db.prepare('SELECT event_id FROM hot_items WHERE dedup_key=?').get(key);let eventId=existing?.event_id;
       if(!eventId){const e=hot.manualEvent({title:n.title,summary:n.facts,lane:/AI|科技|工具/i.test(n.category)?'我的赛道':'重大公共热点'});eventId=e.id;store.db.prepare('INSERT INTO hot_items(id,event_id,dedup_key,url,title,summary,published_at,first_seen_at,last_seen_at) VALUES(?,?,?,?,?,?,?,?,?)').run(uid(),e.id,key,n.sources[0].url,n.title,n.facts,n.publishedAt,now(),now());store.db.prepare('UPDATE hot_events SET origin=?,notes=? WHERE id=?').run('Codex每日自动化',JSON.stringify({verified:n.readScope,whyRelevant:n.analysis}),e.id);}
       return {...n,eventId};});
@@ -63,6 +73,8 @@ export async function ingestDaily(store,dir,body){
     store.db.prepare('INSERT INTO daily_digests VALUES(?,?,?,?,?,?)').run(id,body.day,checksum,raw.hash,JSON.stringify(payload),now());
     store.set('discovery.lastDelivery',{id,day:body.day,at:now(),news:items.length,comments:commentResult.received});return {id,day:body.day,news:items.length,comments:commentResult,duplicate:false};
   });
+  queueDigestImages(store,latestDigest(store,body.day));
+  return delivery;
 }
 export async function collectPublicComments(store,dir,input,signal){
   const url=sourceUrl(text(input.url,4000,true)),response=await fetchPublic(url,{signal,maxBytes:10*1024*1024});
@@ -80,7 +92,14 @@ export function registerDiscovery(app,store,cfg){
   app.get('/api/discovery/identity',async()=>store.get('discovery.collector')||{state:'尚未指定网页采集身份'});
   app.post('/api/discovery/creators',async req=>saveCreator(store,req.body));
   app.patch('/api/discovery/creators/:id',async req=>saveCreator(store,req.body,req.params.id));
-  app.get('/api/discovery/daily',async req=>({day:req.query.day||shanghaiDay(),digest:latestDigest(store,req.query.day),history:store.db.prepare('SELECT day,max(created_at) delivered_at FROM daily_digests GROUP BY day ORDER BY day DESC LIMIT 90').all(),automation:dailyStatus(store)}));
+  app.get('/api/discovery/daily',async req=>{
+    const q=req.query;dateWindow(q);const day=q.day||shanghaiDay();
+    const history=store.db.prepare('SELECT day,max(created_at) delivered_at FROM daily_digests GROUP BY day ORDER BY day DESC LIMIT 90').all();
+    const days=q.from||q.to?history.filter(h=>(!q.from||h.day>=q.from)&&(!q.to||h.day<=q.to)).map(h=>h.day):[day];
+    const editions=days.map(d=>decorateDigest(store,latestDigest(store,d))).filter(Boolean);
+    return {day,digest:decorateDigest(store,latestDigest(store,day)),items:editions.flatMap(d=>d.payload.news.map(n=>({...n,day:d.day,generatedAt:d.payload.generatedAt}))).filter(n=>!q.channel||n.channel===q.channel),history,automation:dailyStatus(store),target:10};
+  });
+  app.post('/api/discovery/daily/images',async req=>({jobs:queueDigestImages(store,latestDigest(store,req.body?.day||shanghaiDay()))}));
   app.post('/api/discovery/daily',async req=>ingestDaily(store,cfg.dir,req.body));
   app.get('/api/discovery/comments',async req=>comments(store,req.query));
   app.post('/api/discovery/comments/import',async req=>importComments(store,cfg.dir,req.body));

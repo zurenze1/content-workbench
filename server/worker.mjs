@@ -15,6 +15,7 @@ import {importVideos,runChat} from './studio.mjs';
 import {runTranscription,importVideoLink} from './transcription.mjs';
 import {archiveFiles} from './workspace.mjs';
 import {collectPublicComments} from './discovery.mjs';
+import {collectNewsImage} from './discovery-media.mjs';
 const cfg=config(),store=new Store(cfg.db),hot=new Hot(store),owner=uid();let lastSchedule=0;let stop=false,active=null;
 process.on('SIGTERM',()=>{stop=true;active?.abort();});process.on('SIGINT',()=>{stop=true;active?.abort();});
 if(process.send){process.on('disconnect',()=>{stop=true;active?.abort();});}
@@ -25,6 +26,7 @@ if(job.kind==='workspace-archive'){const r=await archiveFiles(store,cfg.dir,unde
 if(job.kind==='studio-import'){const r=await importVideos(store,cfg.dir,input.items,signal,s=>stage(job.id,s));return {status:r.failed?'部分完成':'成功',result:r};}
 if(job.kind==='transcribe')return runTranscription(store,cfg.dir,input,signal,s=>stage(job.id,s));
 if(job.kind==='video-link')return importVideoLink(store,cfg.dir,input,signal,s=>stage(job.id,s));
+if(job.kind==='news-image'){stage(job.id,'读取来源封面并保存完整原图');const media=await collectNewsImage(store,cfg.dir,input,{signal});return {status:media.hash?'成功':'部分完成',result:media};}
 if(job.kind==='comments-fetch'){stage(job.id,'读取公开评论（不使用登录凭据）');return collectPublicComments(store,cfg.dir,input,signal);}
 if(job.kind==='studio-chat'){stage(job.id,'Codex 正在思考与创作');return runChat(store,cfg.dir,input,signal);}
 if(job.kind==='feed-fetch'){const feed=store.row('feeds',input.feedId);stage(job.id,'校验公共地址并读取订阅源');let response;try{response=await fetchPublic(feed.url,{signal,maxBytes:5*1024*1024});}catch(e){hot.feedFailed(feed.id,job.id,e.message,!e.retryable||job.attempts>=job.max_attempts);throw e;}stage(job.id,'保存订阅原始响应');const raw=await saveBuffer(store,cfg.dir,response.buffer,'feed.xml');stage(job.id,'逐条去重并聚合事件');let parsed;try{parsed=parseFeedItems(response.buffer);}catch(e){hot.feedFailed(feed.id,job.id,e.message,true);throw e;}return {status:'成功',result:hot.ingest(feed.id,job.id,parsed,raw.hash)};}

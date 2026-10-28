@@ -39,7 +39,7 @@ export function Storyboard({topicId,draft,onChange,refresh}:Props){
   const timed=draft.segments.filter(s=>s.startSec!=null&&s.endSec!=null).length;
   return <section className="storyboard" aria-label="逐句分镜脚本器">
     <div className="sb-heading"><div><p className="eyebrow">SCRIPT / SHOT / SOURCE</p><h3>一句文案，一组画面。</h3><p>{draft.segments.length} 行 · {timed} 行已定时 · {refs.length} 份素材关联</p></div><div className="actions"><button disabled={!!busy} onClick={()=>{try{const d=splitForStoryboard(current.current,uid);if(d.segments.length===draft.segments.length){setError('当前已经按句排列，无需拆分。');return;}setUndo(structuredClone(current.current));setUndoAfter(JSON.stringify([d.segments,d.budget]));onChange(d);setError('');}catch(e:any){setError(e.message);}}}>按句拆开文案</button>{undo&&undoAfter===JSON.stringify([draft.segments,draft.budget])&&<button disabled={!!busy} onClick={()=>{onChange({...current.current,segments:undo.segments,budget:undo.budget});setUndo(null);setError('');}}>撤销整理</button>}</div></div>
-    <p className="sb-help">时间留空表示待定。点击右侧空白区后可粘贴图片或链接，也可拖入文件、上传或从素材库选择。视频链接先保存出处，能否读取会单独显示。</p>
+    <details className="sb-help"><summary>素材怎么放？时间怎么填？</summary><p>时间留空表示待定。点击右侧空白区后可粘贴图片或链接，也可拖入文件、上传或从素材库选择。视频链接先保存出处，能否读取会单独显示。</p></details>
     {error&&<p role="alert" className="notice error">{error}</p>}
     <div className="sb-table"><div className="sb-columns"><span>时间 · 分:秒</span><span>逐句文案 / 旁白</span><span>对应素材 / 视频</span></div>
     {draft.segments.map((s,i)=><article className="sb-row" key={s.id} aria-label={'分镜第'+(i+1)+'行'}>

@@ -1,3 +1,4 @@
+import {dateWindow,mediaFor} from './discovery-media.mjs';
 import {now,text,parse,uid} from './store.mjs';
 import {Hot,LANES,SCREENS,LIFECYCLES,JUDGEMENTS,HOT_RIGHTS,shanghaiDay,shanghaiTime} from './hot.mjs';
 import {Create,DIMENSIONS,MATERIALS,PLAN_STATES,validZone} from './create.mjs';
@@ -19,7 +20,7 @@ export function register(app,store,cfg){const hot=new Hot(store),create=new Crea
   app.post('/api/hot/feeds',async req=>hot.feed(req.body||{}));
   app.patch('/api/hot/feeds/:id',async req=>hot.feed(req.body||{},req.params.id));
   app.post('/api/hot/feeds/:id/run',async req=>hot.queueFeed(req.params.id));
-  app.get('/api/hot/events',async req=>hot.events(req.query));
+  app.get('/api/hot/events',async req=>{const w=dateWindow(req.query);return hot.events({...req.query,fromAt:w.from,toAt:w.to}).map(e=>{const report=store.db.prepare('SELECT url FROM hot_items WHERE event_id=? AND url!=? ORDER BY first_seen_at LIMIT 1').get(e.id,'');return {...e,media:report?mediaFor(store,report.url):null};});});
   app.post('/api/hot/events',async req=>hot.manualEvent(req.body||{}));
   app.get('/api/hot/events/:id',async req=>hot.event(req.params.id));
   app.patch('/api/hot/events/:id',async req=>hot.update(req.params.id,req.body||{}));
