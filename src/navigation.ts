@@ -4,7 +4,8 @@ export const AREAS = [
   {id:'create', name:'项目创作', mark:'03', views:[['board','项目列表','按制作进度继续项目'],['topics','当前项目','素材、脚本分镜、提案、审稿和发布']]},
   {id:'assets', name:'素材库', mark:'04', views:[['assets','搜索全部素材','同时检索资料与已归集原件'],['materials','视频素材','参考片段、处理素材和动效'],['library','资料与证据','出处、原文和证据片段'],['transcripts','音视频逐字稿','本机转写或导入已有字幕']]},
   {id:'works', name:'我的作品', mark:'05', views:[['videos','完整作品','按作品归组，清晰度收在同一版本'],['process','制作过程','试剪、样片和试听']]},
-  {id:'publish', name:'发布复盘', mark:'06', views:[['review','作品复盘','真实后台数据、复盘和下一步'],['calendar','发布排期','计划与实际发布分开记录']]}
+  {id:'publish', name:'发布复盘', mark:'06', views:[['review','作品复盘','真实后台数据、复盘和下一步'],['calendar','发布排期','计划与实际发布分开记录']]},
+  {id:'edit-plan', name:'分镜执行台', mark:'07', views:[['edit-plan','分镜执行台','在线脚本、分镜与素材执行计划']]}
 ];
 export const UTILITIES = [
   ['guide','使用说明','从一个真实项目开始'],['settings','设置与备份','连接、时区和恢复'],['ips','账号与IP','自己的账号和实际服务IP'],['tasks','采集任务','真实进度与失败重试'],['subscriptions','RSS设置','订阅源和站内简报'],['allarchive','原始档案','原目录与来源追溯'],['recycle','回收站','恢复移出的内容']

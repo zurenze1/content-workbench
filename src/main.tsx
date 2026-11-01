@@ -25,6 +25,7 @@ import {MediaDesk} from './transcription';
 import {PublicCalendar} from './public-events';
 import {AttentionBudget,ModelPanel,TEMPLATES,templateSegments,newBudget,type Budget} from './script-tools';
 import {Storyboard} from './storyboard';
+import {EditPlan} from './edit-plan';
 import type {StorySegment as Segment} from './storyboard-model';
 import './notebook.css';
 import './spring.css';
@@ -65,6 +66,7 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
 {view==='othernews'&&<DailyFeed lane="other" assessHot={assessHot} openTopic={openTopic}/>}
 {view==='ai'&&<DailyFeed lane="ai" assessHot={assessHot} openTopic={openTopic}/>}
 {view==='transcripts'&&<MediaDesk boot={boot} openSource={openSource} refresh={refresh}/>}
+{view==='edit-plan'&&<EditPlan url={boot.editPlanUrl}/>}
 {view==='guide'&&<UserGuide boot={boot} go={nav}/>}
 {view==='assets'&&<AssetSearch boot={boot} openSource={openSource} refresh={refresh}/>}
 {view==='ips'&&<IPManager boot={boot} openTopic={openTopic} newTopic={beginTopic} refresh={refresh}/>}
