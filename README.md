@@ -104,3 +104,6 @@ WORKBENCH_EDIT_PLAN_URL='https://your-tool.example/' npm start
 ```
 
 未配置时会明确提示；卡片仅接受HTTP/HTTPS地址。本次没有嵌入外部网页、迁移第三方数据或改变项目内原有分镜编辑器。
+
+
+0.10.4：分镜执行台云白 / 天蓝主题与可选本机背景，见[验收范围](docs/0.10.4-ACCEPTANCE.md)。公开源码包不包含本机背景图。
