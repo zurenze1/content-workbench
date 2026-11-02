@@ -5,10 +5,10 @@ import path from 'node:path';
 import os from 'node:os';
 import {Store,parse,uid} from '../server/store.mjs';
 import {saveBuffer,blobPath,fileHash} from '../server/files.mjs';
-import {exportVersion} from '../server/export.mjs';
+import {exportVersion,exportExecutionCSV} from '../server/export.mjs';
 import {createBackup,inspectBackup,restoreInspected} from '../server/backup.mjs';
 import {Operations} from '../server/operations.mjs';
-import {parseTime,formatTime,sentenceParts,splitForStoryboard} from '../src/storyboard-model.ts';
+import {parseTime,formatTime,sentenceParts,splitForStoryboard,executionStats} from '../src/storyboard-model.ts';
 import {unzipSync,strFromU8} from 'fflate';
 
 test('分镜时间：分秒、小数、中文、零与未知；拒绝无效和反向区间',()=>{
@@ -43,9 +43,29 @@ test('分镜原件：数据库重开、交付ZIP、完整备份及恢复均保�
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'storyboard-')),dir=path.join(root,'data');for(const n of ['blobs','staging','backups','restored'])await fs.mkdir(path.join(dir,n),{recursive:true});let s=new Store(path.join(dir,'workbench.sqlite'));
   try{
     const a=s.account({name:'分镜隔离IP',role:'自有'}),t=s.topic({title:'分镜隔离选题',account_id:a.id}),bytes=await fs.readFile(new URL('./fixtures/video.mp4',import.meta.url)),blob=await saveBuffer(s,dir,bytes,'测试原视频.mp4'),source=s.createSource({title:'分镜测试原视频',kind:'视频',rights:'待核实',url:'https://example.org/video-original'}).source,v=s.addVersion(source.id,{blobHash:blob.hash,filename:'测试原视频.mp4',status:'成功',method:'仅存原片，未分析视频'});s.link(t.id,source.id);
-    s.saveDraft(t.id,{draft:{title:'分镜验收',segments:[{id:'one',narration:'合成测试第一句。',shot:'用于原件保存测试',evidenceIds:[],startSec:0,endSec:2,editNote:'恢复后保留主选与剪辑说明',materials:[{sourceId:source.id,versionId:v.id,role:'主选'}]}]}});const version=s.snapshot(t.id,'分镜验收快照');s.close();s=new Store(path.join(dir,'workbench.sqlite'));
+    s.saveDraft(t.id,{draft:{title:'分镜验收',segments:[{id:'one',narration:'合成测试第一句。',shot:'用于原件保存测试',evidenceIds:[],startSec:0,endSec:2,editNote:'恢复后保留主选与剪辑说明',transition:'叠化8帧',audioNote:'轻钢琴，口播下压',executionState:'待剪辑',materials:[{sourceId:source.id,versionId:v.id,role:'主选'}]}]}});const version=s.snapshot(t.id,'分镜验收快照');s.close();s=new Store(path.join(dir,'workbench.sqlite'));
     assert.equal(s.draft(t.id).draft.segments[0].materials[0].versionId,v.id);assert.equal((await fileHash(blobPath(dir,blob.hash))).hash,blob.hash);
     const ops=new Operations(s,dir),h=await ops.handoff(t.id,{versionId:version.id}),zip=unzipSync(new Uint8Array(await fs.readFile(blobPath(dir,h.blob_hash)))),manifest=JSON.parse(strFromU8(zip['交付清单.json']));assert.equal(manifest.originals.length,1);assert.deepEqual(Buffer.from(zip[manifest.originals[0].path]),bytes);
-    const backup=await createBackup(s,dir),preview=await inspectBackup(path.join(dir,'backups',backup.filename),root),restored=await restoreInspected(preview,path.join(root,'restored-data'),{confirm:true}),r=new Store(path.join(restored.dataDirectory,'workbench.sqlite'));try{assert.equal(r.draft(t.id).draft.segments[0].startSec,0);assert.equal(r.draft(t.id).draft.segments[0].editNote,'恢复后保留主选与剪辑说明');assert.equal(r.draft(t.id).draft.segments[0].materials[0].role,'主选');assert.equal(r.draft(t.id).draft.segments[0].materials[0].versionId,v.id);assert.deepEqual(await fs.readFile(blobPath(restored.dataDirectory,blob.hash)),bytes);assert.equal(r.db.prepare('PRAGMA foreign_key_check').all().length,0);}finally{r.close();}
+    const backup=await createBackup(s,dir),preview=await inspectBackup(path.join(dir,'backups',backup.filename),root),restored=await restoreInspected(preview,path.join(root,'restored-data'),{confirm:true}),r=new Store(path.join(restored.dataDirectory,'workbench.sqlite'));try{assert.equal(r.draft(t.id).draft.segments[0].startSec,0);assert.equal(r.draft(t.id).draft.segments[0].transition,'叠化8帧');assert.equal(r.draft(t.id).draft.segments[0].audioNote,'轻钢琴，口播下压');assert.equal(r.draft(t.id).draft.segments[0].executionState,'待剪辑');assert.ok(exportExecutionCSV(r,version.id).includes('轻钢琴，口播下压'));assert.equal(exportVersion(r,version.id).json.draft.segments[0].transition,'叠化8帧');assert.equal(r.draft(t.id).draft.segments[0].editNote,'恢复后保留主选与剪辑说明');assert.equal(r.draft(t.id).draft.segments[0].materials[0].role,'主选');assert.equal(r.draft(t.id).draft.segments[0].materials[0].versionId,v.id);assert.deepEqual(await fs.readFile(blobPath(restored.dataDirectory,blob.hash)),bytes);assert.equal(r.db.prepare('PRAGMA foreign_key_check').all().length,0);}finally{r.close();}
   }finally{s.close();await fs.rm(root,{recursive:true,force:true});}
+});
+
+
+test('执行表字段与固定版本：合法状态、长度、旧稿兼容、CSV转义与公式防护',()=>{
+ const s=new Store(':memory:');try{
+  const t=s.topic({title:'执行表隔离测试'}),legacy={id:'legacy',heading:'',narration:'旧稿',shot:'',subtitle:'',evidenceIds:[]};
+  const old=s.saveDraft(t.id,{draft:{title:'执行表',segments:[legacy]}});assert.deepEqual(old.draft.segments[0],legacy);
+  for(const [key,value] of [['executionState','已自动生成'],['transition','字'.repeat(4001)],['audioNote',123]])assert.throws(()=>s.validateDraft({title:'执行表',segments:[{...legacy,[key]:value}]},t.id));
+  const rows=[{...legacy,id:'a',narration:'=1+1',shot:'画面“特写”,慢推\n保留换行',startSec:0,endSec:4.25,transition:'淡出8帧',audioNote:'钢琴，音量-20dB',executionState:'已完成'},{...legacy,id:'b',narration:'尾句',transition:'@SUM(A1)',audioNote:'\t+1',startSec:null,endSec:null,executionState:'待素材'}];
+  const saved=s.saveDraft(t.id,{draft:{title:'执行表',segments:rows},revision:old.revision}),v=s.snapshot(t.id,'第一版');
+  const csv=exportExecutionCSV(s,v.id);assert.ok(csv.startsWith('\uFEFF'));assert.ok(csv.includes('"00:00","00:04.25"'));assert.ok(csv.includes('"\'=1+1"'));assert.ok(csv.includes('"\'@SUM(A1)"'));assert.ok(csv.includes('"\'\t+1"'));assert.ok(csv.includes('"画面“特写”,慢推\n保留换行"'));assert.ok(csv.includes('"b"')===false);assert.ok(csv.includes('"2","","","","尾句"'));
+  const exported=exportVersion(s,v.id);assert.ok(exported.markdown.includes('音乐 / 音效：钢琴，音量-20dB'));assert.ok(exported.markdown.includes('执行状态：已完成'));assert.equal(exported.json.draft.segments[0].transition,'淡出8帧');
+  s.saveDraft(t.id,{draft:{title:'执行表',segments:[{...rows[0],transition:'硬切',executionState:'待剪辑'}]},revision:saved.revision});assert.equal(exportExecutionCSV(s,v.id),csv);
+ }finally{s.close();}
+});
+test('执行表统计只使用实际填写值，识别未计时、已完成、素材与时间重叠',()=>{
+ const base={id:'a',heading:'',narration:'',shot:'',subtitle:'',evidenceIds:[]};
+ assert.deepEqual(executionStats([]),{count:0,completed:0,withMaterials:0,unknownTime:0,lastEnd:null,overlaps:0});
+ const actual=executionStats([{...base,startSec:0,endSec:3,executionState:'已完成'},{...base,id:'b',startSec:2,endSec:8,materials:[{sourceId:'s',versionId:'v'}]},{...base,id:'c',startSec:null,endSec:null}]);
+ assert.deepEqual(actual,{count:3,completed:1,withMaterials:1,unknownTime:1,lastEnd:8,overlaps:1});
 });

@@ -66,7 +66,7 @@ return <div className="shell"><aside className="sidebar"><a className="brand" hr
 {view==='othernews'&&<DailyFeed lane="other" assessHot={assessHot} openTopic={openTopic}/>}
 {view==='ai'&&<DailyFeed lane="ai" assessHot={assessHot} openTopic={openTopic}/>}
 {view==='transcripts'&&<MediaDesk boot={boot} openSource={openSource} refresh={refresh}/>}
-{view==='edit-plan'&&<EditPlan url={boot.editPlanUrl}/>}
+{view==='edit-plan'&&<EditPlan url={boot.editPlanUrl} boot={scopedBoot} refresh={refresh} dirtyRef={draftDirty}/>}
 {view==='guide'&&<UserGuide boot={boot} go={nav}/>}
 {view==='assets'&&<AssetSearch boot={boot} openSource={openSource} refresh={refresh}/>}
 {view==='ips'&&<IPManager boot={boot} openTopic={openTopic} newTopic={beginTopic} refresh={refresh}/>}

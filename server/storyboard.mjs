@@ -5,6 +5,10 @@ export function validateStoryboard(store,topicId,segment){
     if(typeof segment.editNote!=='string'||segment.editNote.length>4000)throw new Error('剪辑说明应不超过4000字');
     result.editNote=segment.editNote;
   }
+  for(const [key,label]of [['transition','转场'],['audioNote','音乐与音效']])if(segment[key]!==undefined){
+    if(typeof segment[key]!=='string'||segment[key].length>4000)throw new Error(label+'应不超过4000字');result[key]=segment[key];
+  }
+  if(segment.executionState!==undefined){if(!['待素材','待剪辑','已完成'].includes(segment.executionState))throw new Error('分镜执行状态无效');result.executionState=segment.executionState;}
   for(const key of ['startSec','endSec'])if(segment[key]!==undefined){
     const n=segment[key];if(n!==null&&(typeof n!=='number'||!Number.isFinite(n)||n<0||n>86400))throw new Error('分镜时间应为0—86400秒，未知请留空');
     result[key]=n===null?null:Math.round(n*1000)/1000;

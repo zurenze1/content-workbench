@@ -13,7 +13,7 @@ import {Store,uid,now,text,parse,hash,TYPES,STATES,RIGHTS,NATURES,STAGES} from '
 import {sourceUrl} from './security.mjs';
 import {saveBlob,blobPath,byteRange,safeName} from './files.mjs';
 import {restoreInspected} from './backup.mjs';
-import {exportVersion} from './export.mjs';
+import {exportVersion,exportExecutionCSV} from './export.mjs';
 import {register,services,enums} from './routes.mjs';
 import {registerStudio} from './studio.mjs';
 import {registerTranscription} from './transcription.mjs';
@@ -30,7 +30,7 @@ app.setErrorHandler((error,request,reply)=>{const code=error.statusCode||400;rep
 // A personally supplied font is a local UI setting, never a source asset or export.
 app.get('/api/ui-font.css',async(req,reply)=>{const local="local('WenYue_XinQingNianTi_J-W8'),local('WenYue-XinQingNianTi-NC-W8')",src=fs.existsSync(path.join(cfg.dir,'ui-font.otf'))?"url('/api/ui-font') format('opentype'),"+local:local;return reply.type('text/css; charset=utf-8').send(`@font-face{font-family:WorkbenchYouth;src:${src};font-style:normal;font-weight:100 900;font-display:swap}`);});
 app.get('/api/ui-font',async(req,reply)=>{const file=path.join(cfg.dir,'ui-font.otf');if(!fs.existsSync(file))return reply.code(404).send({error:'本机字体尚未安装'});return reply.type('font/otf').send(fs.createReadStream(file));});
-app.get('/api/bootstrap',async()=>({version:APP_VERSION,csrf,editPlanUrl:process.env.WORKBENCH_EDIT_PLAN_URL||store.get('workspace.editPlanUrl')||'',timezone:store.get('timezone'),publishTimezone:store.get('publishTimezone')||'Asia/Shanghai',uiTimezone:store.get('uiTimezone')||'Asia/Shanghai',enums:enums(),dataDirectory:cfg.dir,maxFileBytes:cfg.maxFile,accounts:store.db.prepare('SELECT * FROM accounts ORDER BY created_at').all(),topics:store.db.prepare('SELECT * FROM topics ORDER BY updated_at DESC').all(),counts:Object.fromEntries(['sources','topics','evidence','script_versions','blobs'].map(t=>[t,store.db.prepare(`SELECT count(*) n FROM ${t}`).get().n])),types:TYPES,states:STATES,rights:RIGHTS,natures:NATURES,stages:STAGES,services:services(store,cfg.dir)}));
+app.get('/api/bootstrap',async()=>({version:APP_VERSION,executionDesk:true,csrf,editPlanUrl:process.env.WORKBENCH_EDIT_PLAN_URL||store.get('workspace.editPlanUrl')||'',timezone:store.get('timezone'),publishTimezone:store.get('publishTimezone')||'Asia/Shanghai',uiTimezone:store.get('uiTimezone')||'Asia/Shanghai',enums:enums(),dataDirectory:cfg.dir,maxFileBytes:cfg.maxFile,accounts:store.db.prepare('SELECT * FROM accounts ORDER BY created_at').all(),topics:store.db.prepare('SELECT * FROM topics ORDER BY updated_at DESC').all(),counts:Object.fromEntries(['sources','topics','evidence','script_versions','blobs'].map(t=>[t,store.db.prepare(`SELECT count(*) n FROM ${t}`).get().n])),types:TYPES,states:STATES,rights:RIGHTS,natures:NATURES,stages:STAGES,services:services(store,cfg.dir)}));
 register(app,store,cfg);
 registerCuration(app,store);
 registerStudio(app,store,cfg);
@@ -60,7 +60,7 @@ app.get('/api/topics/:id/script',async req=>store.draft(req.params.id));
 app.put('/api/topics/:id/script',async req=>store.saveDraft(req.params.id,req.body));
 app.post('/api/topics/:id/versions',async req=>store.snapshot(req.params.id,req.body?.label));
 app.get('/api/versions/:id',async req=>{const v=store.row('script_versions',req.params.id);return {...v,payload:parse(v.payload)};});
-app.get('/api/versions/:id/export',async(req,reply)=>{const data=exportVersion(store,req.params.id),json=req.query.format==='json';reply.header('Content-Type',json?'application/json; charset=utf-8':'text/markdown; charset=utf-8').header('Content-Disposition',`attachment; filename*=UTF-8''${encodeURIComponent('脚本-带来源-'+req.params.id.slice(0,8)+(json?'.json':'.md'))}`);return json?JSON.stringify(data.json,null,2):data.markdown;});
+app.get('/api/versions/:id/export',async(req,reply)=>{const csv=req.query.format==='csv',json=req.query.format==='json',data=csv?exportExecutionCSV(store,req.params.id):exportVersion(store,req.params.id);reply.header('Content-Type',csv?'text/csv; charset=utf-8':json?'application/json; charset=utf-8':'text/markdown; charset=utf-8').header('Content-Disposition',`attachment; filename*=UTF-8''${encodeURIComponent('分镜执行表-'+req.params.id.slice(0,8)+(csv?'.csv':json?'.json':'.md'))}`);return csv?data:json?JSON.stringify(data.json,null,2):data.markdown;});
 app.post('/api/topics/:id/publications',async req=>store.publish(req.params.id,req.body));
 app.post('/api/backups',async()=>store.jobView(store.job('backup',{})));
 app.get('/api/backups/:filename',async(req,reply)=>{if(!/^[0-9a-f-]{36}\.tar\.gz$/.test(req.params.filename))throw new Error('无效备份');const file=path.join(cfg.dir,'backups',req.params.filename);await fsp.stat(file);reply.header('Content-Type','application/gzip').header('Content-Disposition',`attachment; filename*=UTF-8''${encodeURIComponent('工作台完整备份-'+req.params.filename)}`);return reply.send(fs.createReadStream(file));});

@@ -1,6 +1,6 @@
 export type MaterialRole='主选'|'备选'|'参考';
 export type MaterialRef={sourceId:string;versionId:string;role?:MaterialRole};
-export type StorySegment={id:string;heading:string;narration:string;shot:string;subtitle:string;evidenceIds:string[];startSec?:number|null;endSec?:number|null;materials?:MaterialRef[];editNote?:string};
+export type StorySegment={id:string;heading:string;narration:string;shot:string;subtitle:string;evidenceIds:string[];startSec?:number|null;endSec?:number|null;materials?:MaterialRef[];editNote?:string;transition?:string;audioNote?:string;executionState?:'待素材'|'待剪辑'|'已完成'};
 export function assignMaterialRole(materials:MaterialRef[],versionId:string,role:MaterialRole):MaterialRef[]{
   return materials.map(r=>r.versionId===versionId?{...r,role}:role==='主选'&&r.role==='主选'?{...r,role:'备选'}:r);
 }
@@ -33,4 +33,10 @@ export function splitForStoryboard<T extends {segments:StorySegment[];budget?:{s
   if(next.segments.length>500)throw new Error('分镜最多500行，请分成多个脚本');
   if(next.budget)next.budget.sections.forEach(s=>{s.segmentIds=s.segmentIds.flatMap(id=>mapping.get(id)||[id]);});
   return next;
+}
+
+export function executionStats(segments:StorySegment[]){
+  const timed=segments.filter(s=>s.startSec!=null&&s.endSec!=null).sort((a,b)=>a.startSec!-b.startSec!);let previousEnd=0,overlaps=0;
+  for(const s of timed){if(s.startSec!<previousEnd)overlaps++;previousEnd=Math.max(previousEnd,s.endSec!);}
+  return {count:segments.length,completed:segments.filter(s=>s.executionState==='已完成').length,withMaterials:segments.filter(s=>s.materials?.length).length,unknownTime:segments.length-timed.length,lastEnd:timed.length?Math.max(...timed.map(s=>s.endSec!)):null,overlaps};
 }
